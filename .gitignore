@@ -1,0 +1,26 @@
+# ===== 密钥（绝对不能提交）=====
+config/secrets.yaml
+*.key
+.env
+
+# ===== 运行产物：采集数据与日志 =====
+# 里面是第三方平台的用户原话，涉及他人言论版权与隐私，不公开
+data/
+logs/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

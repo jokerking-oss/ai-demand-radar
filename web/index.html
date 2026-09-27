@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 需求雷达 · 痛点排行</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --line:#e5e7eb; --text:#1f2328; --muted:#6b7280;
+    --accent:#2f6fed; --hot:#e5484d; --good:#12a150; --warn:#f5a524; --soft:#f1f5f9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;font-size:14px;}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 22px;
+         display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
+  h1{font-size:17px;margin:0;font-weight:600}
+  .sub{color:var(--muted);font-size:12px}
+  .spacer{flex:1}
+  button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;
+         font-size:13px;cursor:pointer}
+  button:hover{opacity:.88}
+  button.ghost{background:var(--card);color:var(--text);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:default}
+  select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--card);font-size:13px}
+  main{padding:18px 22px 60px;max-width:1180px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .num{font-size:26px;font-weight:600;line-height:1.2}
+  .kpi .lab{color:var(--muted);font-size:12px;margin-top:2px}
+  section{margin-bottom:18px}
+  h2{font-size:14px;margin:0 0 10px;font-weight:600;display:flex;align-items:center;gap:8px}
+  h2 .hint{font-weight:400;color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+  th{background:var(--soft);color:var(--muted);font-weight:500;font-size:12px}
+  tr:last-child td{border-bottom:0}
+  .rank{color:var(--muted);width:34px}
+  .bar{height:7px;border-radius:4px;background:linear-gradient(90deg,#2f6fed,#6ea1ff);display:block}
+  .barwrap{background:var(--soft);border-radius:4px;height:7px;width:150px}
+  .name{font-weight:500;cursor:pointer}
+  .name:hover{color:var(--accent);text-decoration:underline}
+  .up{color:var(--hot)} .down{color:var(--good)} .flat{color:var(--muted)}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;background:var(--soft);
+        color:var(--muted);font-size:11px;margin-right:4px}
+  .pill.hi{background:#fdecec;color:var(--hot)}
+  .pill.mid{background:#fff5e5;color:#b45309}
+  .pill.low{background:var(--soft);color:var(--muted)}
+  .ev .dm{font-size:13px;margin-bottom:4px}
+  .ev .rsn{color:var(--accent);font-size:12px;margin-bottom:4px;
+           border-left:3px solid var(--accent);padding-left:8px}
+  .quote{color:var(--muted);font-size:12px;max-width:420px}
+  .empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+  details{margin-top:8px}
+  summary{cursor:pointer;color:var(--accent);font-size:12px}
+  .ev{background:var(--soft);border-radius:8px;padding:9px 12px;margin-top:6px;font-size:12.5px}
+  .ev .meta{color:var(--muted);font-size:11px;margin-top:4px}
+  .flex2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+  .rowlist div.row{display:flex;justify-content:space-between;padding:5px 0;
+                   border-bottom:1px dashed var(--line);font-size:13px}
+  .rowlist div.row:last-child{border-bottom:0}
+  svg{display:block}
+  .loading{color:var(--muted);font-size:13px;padding:20px 0}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.flex2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>AI 需求雷达</h1>
+    <div class="sub" id="meta">加载中…</div>
+  </div>
+  <div class="spacer"></div>
+  <select id="days">
+    <option value="0">全部时间</option>
+    <option value="1">近 1 天</option>
+    <option value="7">近 7 天</option>
+    <option value="30" selected>近 30 天</option>
+    <option value="90">近 90 天</option>
+  </select>
+  <select id="filter">
+    <option value="all" selected>全部需求</option>
+    <option value="implicit">只看挖出来的（隐性）</option>
+    <option value="explicit">只看用户明说的</option>
+  </select>
+  <button class="ghost" id="refresh">刷新</button>
+  <button id="run">立刻跑一轮</button>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card kpi"><div class="num" id="k1">–</div><div class="lab">累计原始评论</div></div>
+    <div class="card kpi"><div class="num" id="k2">–</div>
+      <div class="lab">抽出需求 · <b class="up" id="k2b">–</b> 条是挖出来的</div></div>
+    <div class="card kpi"><div class="num" id="k3">–</div><div class="lab">归并后独立需求</div></div>
+    <div class="card kpi"><div class="num" id="k4">–</div><div class="lab">最近一轮</div></div>
+  </div>
+
+  <section>
+    <h2>被提到最多的痛点 <span class="hint">点需求名看原始评论</span></h2>
+    <table id="tbl">
+      <thead><tr>
+        <th class="rank">#</th><th>需求</th><th style="width:170px">提及次数</th>
+        <th>隐性</th><th>痛感</th><th>趋势</th><th>来源</th><th>最近</th>
+      </tr></thead>
+      <tbody><tr><td colspan="8" class="empty loading">加载中…</td></tr></tbody>
+    </table>
+  </section>
+
+  <div class="flex2">
+    <section class="card">
+      <h2>每日采集量</h2>
+      <div id="chart"></div>
+    </section>
+    <section class="card">
+      <h2>来源分布</h2>
+      <div class="rowlist" id="srcs"></div>
+    </section>
+  </div>
+
+  <div class="flex2">
+    <section class="card">
+      <h2>被点名的产品</h2>
+      <div class="rowlist" id="products"></div>
+    </section>
+    <section class="card">
+      <h2>痛感分布</h2>
+      <div class="rowlist" id="pain"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const LAST = {rows: []};
+const el = (t, c, h) => { const n=document.createElement(t); if(c) n.className=c; if(h!=null) n.innerHTML=h; return n; };
+let TIMER=null;
+
+async function api(u, o){ const r=await fetch(u,o); if(!r.ok) throw new Error(r.status); return r.json(); }
+const esc = s => String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function lineChart(daily){
+  const box=$('#chart'); box.innerHTML='';
+  const pts=daily.filter(d=>d.items>0||d.needs>0);
+  if(pts.length===0){ box.innerHTML='<div class="empty">还没有数据</div>'; return; }
+  const W=Math.max(320,box.clientWidth||560), H=190, PL=36, PR=8, PT=12, PB=24;
+  const max=Math.max(1,...pts.map(d=>d.items));
+  const x=i=>PL+i*(W-PL-PR)/Math.max(1,pts.length-1);
+  const y=v=>H-PB-(v/max)*(H-PT-PB);
+  const path=a=>a.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(d).toFixed(1)).join(' ');
+  const area=a=>path(a)+` L${x(a.length-1).toFixed(1)},${H-PB} L${PL},${H-PB} Z`;
+  const svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">
+    <line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="#e5e7eb"/>
+    <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${H-PB}" stroke="#e5e7eb"/>
+    <text x="4" y="${PT+8}" font-size="10" fill="#6b7280">${max}</text>
+    <path d="${area(pts.map(d=>d.items))}" fill="rgba(47,111,237,.10)"/>
+    <path d="${path(pts.map(d=>d.items))}" fill="none" stroke="#2f6fed" stroke-width="2"/>
+    <path d="${path(pts.map(d=>d.needs))}" fill="none" stroke="#e5484d" stroke-width="2" stroke-dasharray="4 3"/>
+    ${pts.map((d,i)=>i%Math.ceil(pts.length/6)===0?
+      `<text x="${x(i)}" y="${H-8}" font-size="10" fill="#6b7280" text-anchor="middle">${d.day.slice(5)}</text>`:'').join('')}
+  </svg>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">
+    <span style="color:#2f6fed">■</span> 采集评论　<span style="color:#e5484d">■</span> 抽出需求
+  </div>`;
+  box.innerHTML=svg;
+}
+
+function renderTop(rows){
+  const tb=$('#tbl tbody'); tb.innerHTML='';
+  const mode=$('#filter').value;
+  const shown = mode==='implicit' ? rows.filter(r=>r.implicit_cnt>0)
+              : mode==='explicit' ? rows.filter(r=>r.implicit_cnt<r.count)
+              : rows;
+  if(!shown.length){ tb.innerHTML='<tr><td colspan="8" class="empty">暂无数据，先跑一轮采集</td></tr>'; return; }
+  const max=Math.max(...shown.map(r=>r.count));
+  shown.forEach((r,i)=>{
+    const g=r.growth_pct, cls=g>15?'up':(g<-15?'down':'flat'), sign=g>0?'+':'';
+    const ratio=r.implicit_ratio||0;
+    const badge = ratio>=70 ? '<span class="pill hi">挖</span>'
+                : ratio>=30 ? '<span class="pill mid">半</span>'
+                : '<span class="pill low">明</span>';
+    const tr=el('tr');
+    tr.innerHTML=`<td class="rank">${i+1}</td>
+      <td><div class="name" data-cid="${r.cluster_id}">${esc(r.canonical)}</div>
+          ${r.example_quote?`<div class="quote">“${esc(r.example_quote.slice(0,90))}”</div>`:''}
+          </td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+            <span class="barwrap"><span class="bar" style="width:${(r.count/max*100).toFixed(0)}%"></span></span>
+            <b>${r.count}</b></div></td>
+      <td>${badge} <span class="flat">${ratio}%</span></td>
+      <td>${r.avg_pain}</td>
+      <td class="${cls}">${sign}${g}%</td>
+      <td>${(r.sources||[]).map(s=>`<span class="pill">${esc(s)}</span>`).join('')}</td>
+      <td class="quote">${esc(r.last_seen)}</td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.name').forEach(n=>n.onclick=()=>showEvidence(n.dataset.cid));
+}
+
+async function showEvidence(cid){
+  const tr=document.querySelector(`.name[data-cid="${cid}"]`).closest('tr');
+  const ex=tr.nextElementSibling;
+  if(ex && ex.dataset.ev===String(cid)){ ex.remove(); return; }
+  const row=document.createElement('tr'); row.dataset.ev=String(cid);
+  const td=document.createElement('td'); td.colSpan=8; td.innerHTML='<div class="ev">加载中…</div>';
+  row.appendChild(td); tr.after(row);
+  try{
+    const d=await api(`/api/cluster/${cid}?limit=15`);
+    td.innerHTML=d.items.map(x=>{
+      const tag = x.implicit==1 ? '<span class="pill hi">挖出来的</span>'
+                                : '<span class="pill low">用户明说</span>';
+      return `<div class="ev">
+        <div class="dm">${tag} <b>${esc(x.demand)}</b></div>
+        ${x.reasoning?`<div class="rsn">推导：${esc(x.reasoning)}</div>`:''}
+        <div>“${esc(x.quote||x.content.slice(0,180))}”</div>
+        <div class="meta">${esc(x.source)} · ${esc(x.published_at||'')} · 痛感 ${x.pain_score}
+        ${x.url?` · <a href="${esc(x.url)}" target="_blank">原文</a>`:''}</div></div>`;
+    }).join('') || '<div class="ev">没有更多原始记录了</div>';
+  }catch(e){ td.innerHTML='<div class="ev">加载失败</div>'; }
+}
+
+function renderList(node, rows, fmt){
+  node.innerHTML='';
+  if(!rows||!rows.length){ node.innerHTML='<div class="empty">暂无数据</div>'; return; }
+  rows.slice(0,10).forEach(r=>{
+    const d=el('div','row'); d.innerHTML=fmt(r); node.appendChild(d);
+  });
+}
+
+async function load(){
+  const days=$('#days').value;
+  $('#meta').textContent='加载中…';
+  try{
+    const d=await api(`/api/stats?days=${days}&limit=40`);
+    const o=d.overview||{};
+    $('#k1').textContent=o.raw_total??0;
+    $('#k2').textContent=o.needs_total??0;
+    $('#k2b').textContent=o.insight_implicit??0;
+    $('#k3').textContent=o.clusters_total??0;
+    $('#k4').textContent=o.last_run?(o.last_run.finished_at||'').slice(11,16)||'运行中':'–';
+    $('#meta').innerHTML=`统计窗口 近${days}天 · 生成时间 ${esc((d.generated_at||'').slice(0,19))}`;
+    LAST.rows=d.top_demands||[];
+    renderTop(LAST.rows);
+    lineChart(d.daily||[]);
+    renderList($('#srcs'), d.sources, r=>`<span>${esc(r.source)}</span><b>${r.c}</b>`);
+    renderList($('#products'), d.top_products, r=>`<span>${esc(r.product)}</span>
+        <b>${r.c} 次 · 痛感 ${Number(r.avg_pain||0).toFixed(1)}</b>`);
+    renderList($('#pain'), Object.entries(d.pain_hist||{}).sort((a,b)=>a[0]-b[0]),
+        ([s,c])=>`<span>痛感 ${s}</span><b>${c}</b>`);
+  }catch(e){
+    $('#meta').textContent='接口异常：'+(e.message||e);
+  }
+}
+
+$('#refresh').onclick=load;
+$('#days').onchange=load;
+$('#filter').onchange=()=>renderTop(LAST.rows);   // 本地切换，不重新请求
+$('#run').onclick=async()=>{
+  const b=$('#run'); b.disabled=true; b.textContent='跑中…';
+  try{ const r=await api('/api/run',{method:'POST'}); b.textContent='跑中('+(r.msg||'')+')'; }
+  catch(e){ b.textContent='失败'; }
+  setTimeout(()=>{ b.disabled=false; b.textContent='立刻跑一轮'; load(); }, 12000);
+};
+window.addEventListener('resize',()=>{ clearTimeout(TIMER); TIMER=setTimeout(()=>api(`/api/stats?days=${$('#days').value}`).then(d=>lineChart(d.daily||[])).catch(()=>{}),300); });
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>

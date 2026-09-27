@@ -1,0 +1,8 @@
+# 自定义盯梢页面：一行一个 URL
+# 支持：帖子详情 / 评论区 / RSS / 列表页
+# 以 # 开头的是注释
+
+# 示例（把 # 去掉即可生效）：
+# https://www.v2ex.com/?tab=tech
+# https://news.ycombinator.com/item?id=39000000
+# https://www.zhihu.com/question/xxxxx   （此站建议走浏览器通道，见 README）
